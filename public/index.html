@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat Booba!</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/svg+xml" href="chat-booba.svg" />
+</head>
+<body>
+  <h1>Chat Booba! 🐱</h1>
+  <div class="chat-container">
+    <div id="chat-window" class="chat-window"></div>
+    <form id="chat-form" autocomplete="off">
+      <input type="text" id="user-input" placeholder="Type your message..." required />
+      <button type="submit" id="send-btn" disabled>Send</button>
+      <button type="button" id="stop-btn" style="display: none;">⛔ Stop</button>
+    </form>
+    <div class="chat-controls">
+      <button type="button" id="clear-btn" disabled>🗑️ Clear Chat</button>
+    </div>
+  </div>
+
+  <div class="about-box">
+    <h2>About Us</h2>
+    <p><b>Chat Booba!</b> is a fun, modern AI chat experience powered by Gemini. Enjoy chatting with Booba and exploring the world of AI conversations!</p>
+  </div>
+  <footer>
+    Made with <span style="color: #e25555;">♥</span> by Michael Entera
+  </footer>
+
+  <!-- Modal -->
+  <div id="clear-modal" class="modal-overlay">
+    <div class="modal-box">
+      <p>Are you sure you want to clear the chat?</p>
+      <div class="modal-actions">
+        <button id="confirm-clear">Yes, Clear</button>
+        <button id="cancel-clear">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chatWindow = document.getElementById('chat-window');
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const modal = document.getElementById('clear-modal');
+    const confirmClear = document.getElementById('confirm-clear');
+    const cancelClear = document.getElementById('cancel-clear');
+
+    let controller = null;
+
+    clearBtn.disabled = true;
+
+    userInput.addEventListener('input', () => {
+      sendBtn.disabled = userInput.value.trim() === '';
+    });
+
+    function appendMessage(sender, text) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = sender;
+
+      const label = document.createElement('strong');
+      label.style.display = 'block';
+      label.style.marginBottom = '4px';
+
+      label.innerHTML = sender === 'user' ? `👤 <b>Me:</b>` : `🐱 <b>Booba!:</b>`;
+
+      const messageText = document.createElement('span');
+      messageText.textContent = text;
+
+      msgDiv.appendChild(label);
+      msgDiv.appendChild(messageText);
+
+      chatWindow.appendChild(msgDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      clearBtn.disabled = false;
+    }
+
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      appendMessage('user', message);
+      userInput.value = '';
+      sendBtn.disabled = true;
+      stopBtn.style.display = 'inline-block';
+
+      const loadingMsg = document.createElement('div');
+      loadingMsg.className = 'ai typing';
+      loadingMsg.textContent = 'Booba is typing...';
+      chatWindow.appendChild(loadingMsg);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      controller = new AbortController();
+
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+          signal: controller.signal
+        });
+
+        const data = await res.json();
+        chatWindow.removeChild(loadingMsg);
+        stopBtn.style.display = 'none';
+
+        setTimeout(() => {
+          appendMessage('ai', data.reply || '...');
+          controller = null;
+        }, 600);
+      } catch (err) {
+        chatWindow.removeChild(loadingMsg);
+        stopBtn.style.display = 'none';
+        if (err.name === 'AbortError') {
+          appendMessage('ai', 'Booba stopped typing.');
+        } else {
+          appendMessage('ai', 'Error: Could not get response.');
+        }
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      if (controller) controller.abort();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+
+    confirmClear.addEventListener('click', () => {
+      chatWindow.innerHTML = '';
+      clearBtn.disabled = true;
+      modal.style.display = 'none';
+    });
+
+    cancelClear.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
