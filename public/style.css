@@ -285,3 +285,19 @@ footer {
 #cancel-clear:hover {
   background-color: #ddd;
 }
+
+@media (max-width: 600px) {
+  #chat-form {
+    flex-direction: column;
+    gap: 8px;
+  }
+  #chat-form button, #user-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  #stop-btn {
+    font-size: 1.2rem;
+    padding: 12px 0;
+  }
+}
